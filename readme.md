@@ -29,25 +29,20 @@ The analysis is implemented in Python using Pandas, NumPy, Plotly, and Streamlit
 
 ## 📊 Dataset
 
-The project uses battery **B0005** from the NASA Ames Prognostics Center of Excellence Li-ion Battery Aging Dataset.
+The project uses battery B0005 from the NASA Ames Prognostics Center of Excellence Li-ion Battery Aging Dataset.
 
-The dataset contains experimental measurements from charge, discharge, and impedance operations.
+The dataset contains experimental measurements from:
 
-The raw NASA `.mat` file is not included in this repository. Please obtain the original dataset from NASA and place:
+Charging operations
+Discharging operations
+Impedance measurements
 
-```text
-B0005.mat
-```
+The NASA B0005.mat dataset file used for this analysis is included in the repository under:
 
-inside the:
-
-```text
 data/
-```
+└── B0005.mat
 
-folder.
-
----
+The battery data are processed using Python, Pandas, NumPy, and SciPy to extract charging, discharging, capacity, State of Health (SOH), energy, and temperature-related parameters.
 
 ## ⚙️ Technologies Used
 
@@ -149,7 +144,7 @@ An interactive **Streamlit dashboard** is included with this project for explori
 
 ### 🚀 Live Dashboard
 
-👉 **[Open the Interactive Battery Dashboard](YOUR_STREAMLIT_APP_URL)**
+👉 https://lithium-ion-battery-performance-analysis-hjbc4cyqnfunbhe7cakv3.streamlit.app/?utm_source=chatgpt.com
 
 The dashboard allows users to interactively explore:
 
