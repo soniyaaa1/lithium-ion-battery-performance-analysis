@@ -125,16 +125,23 @@ The final recorded discharge capacity is approximately **1.325 Ah**, correspondi
 
 ## 📊 Generated Results
 
-The analysis automatically generates important figures in the `results/` folder:
+The analysis generates several figures showing battery degradation, energy delivery, and thermal behavior.
 
-* `capacity_degradation.png`
-* `soh_vs_discharge.png`
-* `energy_vs_discharge.png`
-* `temperature_vs_discharge.png`
+### Capacity Degradation
 
-These figures provide a visual overview of battery degradation, energy delivery, and thermal behavior.
+![Capacity Degradation](results/capacity_degradation.png)
 
----
+### State of Health
+
+![State of Health](results/soh_vs_discharge.png)
+
+### Energy Delivered
+
+![Energy Delivered](results/energy_vs_discharge.png)
+
+### Temperature Behavior
+
+![Temperature vs Discharge](results/temperature_vs_discharge.png)
 
 ## 🖥️ Interactive Dashboard
 
@@ -260,5 +267,5 @@ The dataset should be obtained from the original NASA repository and used accord
 **Er. Soniya Karki**
 
 Electrical Engineer | Renewable Energy  
-|
+
 
