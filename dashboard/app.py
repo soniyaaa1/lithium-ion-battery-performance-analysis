@@ -1,3 +1,4 @@
+
 # ================================================================
 # NASA LI-ION BATTERY PERFORMANCE & DEGRADATION DASHBOARD
 # ================================================================
@@ -80,8 +81,6 @@ os.makedirs(
     RESULTS_PATH,
     exist_ok=True
 )
-
-
 
 
 # ================================================================
@@ -179,208 +178,6 @@ save_results(
 
 
 # ================================================================
-# CREATE IMPORTANT DEGRADATION FIGURES
-# ================================================================
-#
-# These figures are automatically generated and saved
-# in the results folder whenever the dashboard runs.
-#
-# Files:
-#   capacity_degradation.png
-#   soh_vs_discharge.png
-#   energy_vs_discharge.png
-#   temperature_vs_discharge.png
-#
-# ================================================================
-
-
-# ------------------------------------------------
-# 1. CAPACITY DEGRADATION
-# ------------------------------------------------
-
-if not capacity_df.empty:
-
-    capacity_fig = go.Figure()
-
-    capacity_fig.add_trace(
-        go.Scatter(
-            x=capacity_df[
-                "discharge_number"
-            ],
-
-            y=capacity_df[
-                "capacity_Ah"
-            ],
-
-            mode="lines+markers",
-
-            name="Capacity"
-        )
-    )
-
-    capacity_fig.update_layout(
-
-        title="Battery Capacity Degradation",
-
-        xaxis_title="Discharge Number",
-
-        yaxis_title="Capacity (Ah)",
-
-        template="plotly_white",
-
-        height=800,
-
-        hovermode="x unified"
-    )
-
-    
-
-
-# ------------------------------------------------
-# 2. SOH VS DISCHARGE
-# ------------------------------------------------
-
-if not capacity_df.empty:
-
-    soh_fig = go.Figure()
-
-    soh_fig.add_trace(
-        go.Scatter(
-            x=capacity_df[
-                "discharge_number"
-            ],
-
-            y=capacity_df[
-                "SOH_percent"
-            ],
-
-            mode="lines+markers",
-
-            name="SOH"
-        )
-    )
-
-    soh_fig.update_layout(
-
-        title="Battery State of Health vs Discharge Number",
-
-        xaxis_title="Discharge Number",
-
-        yaxis_title="State of Health (%)",
-
-        template="plotly_white",
-
-        height=800,
-
-        hovermode="x unified"
-    )
-
-    (
-        soh_fig,
-        "soh_vs_discharge.png"
-    )
-
-
-# ------------------------------------------------
-# 3. ENERGY VS DISCHARGE
-# ------------------------------------------------
-
-if not energy_df.empty:
-
-    energy_fig = go.Figure()
-
-    energy_fig.add_trace(
-        go.Scatter(
-            x=energy_df[
-                "discharge_number"
-            ],
-
-            y=energy_df[
-                "energy_Wh"
-            ],
-
-            mode="lines+markers",
-
-            name="Energy Delivered"
-        )
-    )
-
-    energy_fig.update_layout(
-
-        title="Energy Delivered vs Discharge Number",
-
-        xaxis_title="Discharge Number",
-
-        yaxis_title="Energy Delivered (Wh)",
-
-        template="plotly_white",
-
-        height=800,
-
-        hovermode="x unified"
-    )
-
-    
-
-# ------------------------------------------------
-# 4. Tsave_figure_as_pngEMPERATURE VS DISCHARGE
-# ------------------------------------------------
-
-if not temperature_df.empty:
-
-    temperature_fig = go.Figure()
-
-    temperature_fig.add_trace(
-        go.Scatter(
-            x=temperature_df[
-                "discharge_number"
-            ],
-
-            y=temperature_df[
-                "maximum_temperature_C"
-            ],
-
-            mode="lines+markers",
-
-            name="Maximum Temperature"
-        )
-    )
-
-    temperature_fig.add_trace(
-        go.Scatter(
-            x=temperature_df[
-                "discharge_number"
-            ],
-
-            y=temperature_df[
-                "mean_temperature_C"
-            ],
-
-            mode="lines",
-
-            name="Average Temperature"
-        )
-    )
-
-    temperature_fig.update_layout(
-
-        title="Battery Temperature vs Discharge Number",
-
-        xaxis_title="Discharge Number",
-
-        yaxis_title="Temperature (°C)",
-
-        template="plotly_white",
-
-        height=800,
-
-        hovermode="x unified"
-    )
-
-    
-
-
-# ================================================================
 # DASHBOARD TITLE
 # ================================================================
 
@@ -443,7 +240,8 @@ if page == "🔋 Charging Analysis":
 
     selected_charge = st.selectbox(
         "Select charging operation",
-        charge_numbers
+        charge_numbers,
+        key="charge_operation_select"
     )
 
     data = charging_df[
@@ -451,6 +249,7 @@ if page == "🔋 Charging Analysis":
             "charge_number"
         ] == selected_charge
     ].copy()
+
 
     # ------------------------------------------------------------
     # KPI CARDS
@@ -477,6 +276,7 @@ if page == "🔋 Charging Analysis":
         "Maximum Temperature",
         f"{data['temperature_C'].max():.2f} °C"
     )
+
 
     # ------------------------------------------------------------
     # CHARGING GRAPH
@@ -545,7 +345,8 @@ if page == "🔋 Charging Analysis":
 
     st.plotly_chart(
         fig,
-        use_container_width=True
+        use_container_width=True,
+        key="charging_voltage_current_temperature"
     )
 
 
@@ -575,7 +376,8 @@ elif page == "⚡ Discharging Analysis":
 
     selected_discharge = st.selectbox(
         "Select discharge operation",
-        discharge_numbers
+        discharge_numbers,
+        key="discharge_operation_select"
     )
 
     data = discharging_df[
@@ -593,6 +395,7 @@ elif page == "⚡ Discharging Analysis":
             "discharge_number"
         ] == selected_discharge
     ].iloc[0]
+
 
     # ------------------------------------------------------------
     # KPI CARDS
@@ -615,18 +418,20 @@ elif page == "⚡ Discharging Analysis":
         f"{selected_summary['average_power_W']:.2f} W"
     )
 
-    
-    max_temperature = data["temperature_C"].max()
+    max_temperature = data[
+        "temperature_C"
+    ].max()
 
     col4.metric(
-    "Maximum Temperature",
-    f"{max_temperature:.2f} °C"
+        "Maximum Temperature",
+        f"{max_temperature:.2f} °C"
     )
 
     col5.metric(
         "SOH",
         f"{selected_summary['SOH_percent']:.2f}%"
     )
+
 
     # ------------------------------------------------------------
     # DISCHARGE VOLTAGE / CURRENT / TEMPERATURE
@@ -695,8 +500,10 @@ elif page == "⚡ Discharging Analysis":
 
     st.plotly_chart(
         fig,
-        use_container_width=True
+        use_container_width=True,
+        key="discharge_voltage_current_temperature"
     )
+
 
     # ------------------------------------------------------------
     # POWER
@@ -730,8 +537,10 @@ elif page == "⚡ Discharging Analysis":
 
     st.plotly_chart(
         power_fig,
-        use_container_width=True
+        use_container_width=True,
+        key="discharge_power"
     )
+
 
     # ------------------------------------------------------------
     # RELATIVE DISCHARGE PROGRESS
@@ -748,11 +557,8 @@ elif page == "⚡ Discharging Analysis":
             x=data[
                 "discharge_progress_percent"
             ],
-
             y=data["voltage_V"],
-
             mode="lines",
-
             name="Voltage"
         )
     )
@@ -770,7 +576,8 @@ elif page == "⚡ Discharging Analysis":
 
     st.plotly_chart(
         progress_fig,
-        use_container_width=True
+        use_container_width=True,
+        key="relative_discharge_progress"
     )
 
 
@@ -791,6 +598,7 @@ elif page == "📉 Battery Degradation":
         )
 
         st.stop()
+
 
     # ------------------------------------------------------------
     # BATTERY HEALTH KPIs
@@ -842,56 +650,197 @@ elif page == "📉 Battery Degradation":
         f"{total_loss:.2f}%"
     )
 
-    # ------------------------------------------------------------
-    # CAPACITY DEGRADATION GRAPH
-    # ------------------------------------------------------------
+
+    # ============================================================
+    # 1. CAPACITY DEGRADATION
+    # ============================================================
 
     st.subheader(
         "Capacity Degradation"
     )
 
-    st.plotly_chart(
-        capacity_fig,
-        use_container_width=True
+    capacity_fig = go.Figure()
+
+    capacity_fig.add_trace(
+        go.Scatter(
+            x=capacity_df[
+                "discharge_number"
+            ],
+            y=capacity_df[
+                "capacity_Ah"
+            ],
+            mode="lines+markers",
+            name="Capacity"
+        )
     )
 
-    # ------------------------------------------------------------
-    # SOH GRAPH
-    # ------------------------------------------------------------
+    capacity_fig.update_layout(
+
+        title="Battery Capacity Degradation",
+
+        xaxis_title="Discharge Number",
+
+        yaxis_title="Capacity (Ah)",
+
+        template="plotly_white",
+
+        height=600,
+
+        hovermode="x unified"
+    )
+
+    st.plotly_chart(
+        capacity_fig,
+        use_container_width=True,
+        key="capacity_degradation"
+    )
+
+
+    # ============================================================
+    # 2. SOH VS DISCHARGE
+    # ============================================================
 
     st.subheader(
         "State of Health"
     )
 
-    st.plotly_chart(
-        soh_fig,
-        use_container_width=True
+    soh_fig = go.Figure()
+
+    soh_fig.add_trace(
+        go.Scatter(
+            x=capacity_df[
+                "discharge_number"
+            ],
+            y=capacity_df[
+                "SOH_percent"
+            ],
+            mode="lines+markers",
+            name="SOH"
+        )
     )
 
-    # ------------------------------------------------------------
-    # ENERGY GRAPH
-    # ------------------------------------------------------------
+    soh_fig.update_layout(
+
+        title="Battery State of Health vs Discharge Number",
+
+        xaxis_title="Discharge Number",
+
+        yaxis_title="State of Health (%)",
+
+        template="plotly_white",
+
+        height=600,
+
+        hovermode="x unified"
+    )
+
+    st.plotly_chart(
+        soh_fig,
+        use_container_width=True,
+        key="soh_degradation"
+    )
+
+
+    # ============================================================
+    # 3. ENERGY VS DISCHARGE
+    # ============================================================
 
     st.subheader(
         "Energy Delivered vs Battery Use"
     )
 
-    st.plotly_chart(
-        energy_fig,
-        use_container_width=True
+    energy_fig = go.Figure()
+
+    energy_fig.add_trace(
+        go.Scatter(
+            x=energy_df[
+                "discharge_number"
+            ],
+            y=energy_df[
+                "energy_Wh"
+            ],
+            mode="lines+markers",
+            name="Energy Delivered"
+        )
     )
 
-    # ------------------------------------------------------------
-    # TEMPERATURE GRAPH
-    # ------------------------------------------------------------
+    energy_fig.update_layout(
+
+        title="Energy Delivered vs Discharge Number",
+
+        xaxis_title="Discharge Number",
+
+        yaxis_title="Energy Delivered (Wh)",
+
+        template="plotly_white",
+
+        height=600,
+
+        hovermode="x unified"
+    )
+
+    st.plotly_chart(
+        energy_fig,
+        use_container_width=True,
+        key="energy_degradation"
+    )
+
+
+    # ============================================================
+    # 4. TEMPERATURE VS DISCHARGE
+    # ============================================================
 
     st.subheader(
         "Thermal Behavior During Aging"
     )
 
+    temperature_fig = go.Figure()
+
+    temperature_fig.add_trace(
+        go.Scatter(
+            x=temperature_df[
+                "discharge_number"
+            ],
+            y=temperature_df[
+                "maximum_temperature_C"
+            ],
+            mode="lines+markers",
+            name="Maximum Temperature"
+        )
+    )
+
+    temperature_fig.add_trace(
+        go.Scatter(
+            x=temperature_df[
+                "discharge_number"
+            ],
+            y=temperature_df[
+                "mean_temperature_C"
+            ],
+            mode="lines",
+            name="Average Temperature"
+        )
+    )
+
+    temperature_fig.update_layout(
+
+        title="Battery Temperature vs Discharge Number",
+
+        xaxis_title="Discharge Number",
+
+        yaxis_title="Temperature (°C)",
+
+        template="plotly_white",
+
+        height=600,
+
+        hovermode="x unified"
+    )
+
     st.plotly_chart(
         temperature_fig,
-        use_container_width=True
+        use_container_width=True,
+        key="temperature_degradation"
     )
 
 
@@ -922,6 +871,7 @@ This project uses experimental battery measurements to examine:
 """
     )
 
+
     # ------------------------------------------------------------
     # SUMMARY TABLE
     # ------------------------------------------------------------
@@ -934,6 +884,7 @@ This project uses experimental battery measurements to examine:
         summary_df,
         use_container_width=True
     )
+
 
     # ------------------------------------------------------------
     # DOWNLOAD SUMMARY
@@ -950,8 +901,11 @@ This project uses experimental battery measurements to examine:
 
         file_name="battery_summary.csv",
 
-        mime="text/csv"
+        mime="text/csv",
+
+        key="download_battery_summary"
     )
+
 
     # ------------------------------------------------------------
     # PROJECT INFORMATION
@@ -1006,3 +960,4 @@ st.sidebar.info(
     "Degradation Analysis\n\n"
     "Python • Pandas • SciPy • Plotly • Streamlit"
 )
+
