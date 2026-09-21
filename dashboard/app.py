@@ -82,31 +82,6 @@ os.makedirs(
 )
 
 
-# ================================================================
-# FUNCTION TO SAVE PLOTLY FIGURE AS PNG
-# ================================================================
-
-def save_figure_as_png(fig, filename):
-
-    file_path = os.path.join(
-        RESULTS_PATH,
-        filename
-    )
-
-    try:
-
-        fig.write_image(
-            file_path,
-            width=1400,
-            height=800,
-            scale=2
-        )
-
-    except Exception as e:
-
-        st.warning(
-            f"Could not save {filename}: {e}"
-        )
 
 
 # ================================================================
@@ -258,10 +233,7 @@ if not capacity_df.empty:
         hovermode="x unified"
     )
 
-    save_figure_as_png(
-        capacity_fig,
-        "capacity_degradation.png"
-    )
+    
 
 
 # ------------------------------------------------
@@ -303,7 +275,7 @@ if not capacity_df.empty:
         hovermode="x unified"
     )
 
-    save_figure_as_png(
+    (
         soh_fig,
         "soh_vs_discharge.png"
     )
@@ -348,14 +320,10 @@ if not energy_df.empty:
         hovermode="x unified"
     )
 
-    save_figure_as_png(
-        energy_fig,
-        "energy_vs_discharge.png"
-    )
-
+    
 
 # ------------------------------------------------
-# 4. TEMPERATURE VS DISCHARGE
+# 4. Tsave_figure_as_pngEMPERATURE VS DISCHARGE
 # ------------------------------------------------
 
 if not temperature_df.empty:
@@ -409,10 +377,7 @@ if not temperature_df.empty:
         hovermode="x unified"
     )
 
-    save_figure_as_png(
-        temperature_fig,
-        "temperature_vs_discharge.png"
-    )
+    
 
 
 # ================================================================
