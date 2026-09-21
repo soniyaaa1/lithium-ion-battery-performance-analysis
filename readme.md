@@ -144,7 +144,7 @@ An interactive **Streamlit dashboard** is included with this project for explori
 
 ### 🚀 Live Dashboard
 
-👉 https://lithium-ion-battery-performance-analysis-hjbc4cyqnfunbhe7cakv3.streamlit.app/?utm_source=chatgpt.com
+👉 https://lithium-ion-battery-performance-analysis-hjbc4cyqnfunbhe7cakv3.streamlit.app/
 
 The dashboard allows users to interactively explore:
 
