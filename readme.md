@@ -145,25 +145,30 @@ The analysis generates several figures showing battery degradation, energy deliv
 
 ## 🖥️ Interactive Dashboard
 
-The project includes an interactive Streamlit dashboard that allows users to select individual discharge and charge operations and explore the corresponding measurements.
+An interactive **Streamlit dashboard** is included with this project for exploring lithium-ion battery performance and degradation.
 
-Dashboard features include:
+### 🚀 Live Dashboard
 
-* Charging analysis
-* Discharging analysis
-* Capacity and SOH
-* Energy delivered
-* Power analysis
-* Temperature analysis
-* Battery degradation plots
-* Downloadable analysis results
+👉 **[Open the Interactive Battery Dashboard](YOUR_STREAMLIT_APP_URL)**
 
-### Run the dashboard locally
+The dashboard allows users to interactively explore:
+
+* 🔋 Charging performance
+* ⚡ Discharging performance
+* 📉 Capacity degradation
+* 💚 State of Health (SOH)
+* 🔌 Discharge power
+* 🔋 Energy delivered
+* 🌡️ Battery temperature behavior
+* 📊 Battery degradation trends
+* 📥 Downloadable analysis results
+
+### 💻 Run Locally
 
 Clone the repository:
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_URL
+git clone https://github.com/soniyaaa1/lithium-ion-battery-performance-analysis.git
 ```
 
 Move into the project directory:
@@ -172,7 +177,7 @@ Move into the project directory:
 cd lithium-ion-battery-performance-analysis
 ```
 
-Install the required packages:
+Install the required Python packages:
 
 ```bash
 pip install -r requirements.txt
@@ -182,17 +187,16 @@ Place the NASA `B0005.mat` dataset inside:
 
 ```text
 data/
+└── B0005.mat
 ```
 
-Then run:
+Then launch the dashboard:
 
 ```bash
 streamlit run dashboard/app.py
 ```
 
-The dashboard will open in your browser.
-
----
+The dashboard will open in your web browser.
 
 ## 📁 Project Structure
 
@@ -215,7 +219,6 @@ lithium-ion-battery-performance-analysis/
 │   ├── energy_vs_discharge.png
 │   └── temperature_vs_discharge.png
 │
-├── notebooks/
 │
 ├── README.md
 ├── requirements.txt
