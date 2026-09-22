@@ -1,4 +1,3 @@
-
 # ================================================================
 # NASA LI-ION BATTERY PERFORMANCE & DEGRADATION DASHBOARD
 # ================================================================
@@ -15,10 +14,9 @@ import plotly.graph_objects as go
 # PROJECT PATHS
 # ================================================================
 
-PROJECT_ROOT = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),
-        ".."
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(
+        os.path.abspath(__file__)
     )
 )
 
@@ -28,20 +26,17 @@ DATA_PATH = os.path.join(
     "B0005.mat"
 )
 
-RESULTS_PATH = os.path.join(
+RESULTS_DIR = os.path.join(
     PROJECT_ROOT,
     "results"
 )
 
-SRC_PATH = os.path.join(
+SRC_DIR = os.path.join(
     PROJECT_ROOT,
     "src"
 )
 
-sys.path.insert(
-    0,
-    SRC_PATH
-)
+sys.path.append(SRC_DIR)
 
 
 # ================================================================
@@ -54,16 +49,16 @@ from battery_analysis import (
     extract_discharge_data,
     extract_impedance_data,
     create_capacity_soh_data,
+    calculate_discharge_energy,
     create_temperature_summary,
     calculate_soc_for_discharge,
-    calculate_discharge_energy,
     create_cycle_summary,
     save_results
 )
 
 
 # ================================================================
-# PAGE CONFIGURATION
+# STREAMLIT PAGE CONFIGURATION
 # ================================================================
 
 st.set_page_config(
@@ -78,45 +73,77 @@ st.set_page_config(
 # ================================================================
 
 os.makedirs(
-    RESULTS_PATH,
+    RESULTS_DIR,
     exist_ok=True
 )
 
 
 # ================================================================
-# LOAD ALL BATTERY DATA
+# LOAD AND PROCESS ALL DATA
 # ================================================================
 
 @st.cache_data
 def load_all_data():
 
+    # ------------------------------------------------------------
+    # Load NASA battery data
+    # ------------------------------------------------------------
+
     battery_name, cycles = load_battery(
         DATA_PATH
     )
+
+    # ------------------------------------------------------------
+    # Extract charging data
+    # ------------------------------------------------------------
 
     charging_df = extract_charge_data(
         cycles
     )
 
+    # ------------------------------------------------------------
+    # Extract discharging data
+    # ------------------------------------------------------------
+
     discharging_df = extract_discharge_data(
         cycles
     )
+
+    # ------------------------------------------------------------
+    # Extract impedance data
+    # ------------------------------------------------------------
 
     impedance_df = extract_impedance_data(
         cycles
     )
 
+    # ------------------------------------------------------------
+    # Capacity and SOH
+    # ------------------------------------------------------------
+
     capacity_df = create_capacity_soh_data(
         discharging_df
     )
+
+    # ------------------------------------------------------------
+    # Energy delivered during discharge
+    # ------------------------------------------------------------
 
     energy_df = calculate_discharge_energy(
         discharging_df
     )
 
+    # ------------------------------------------------------------
+    # Temperature summary
+    # ------------------------------------------------------------
+
     temperature_df = create_temperature_summary(
         discharging_df
     )
+
+    # ------------------------------------------------------------
+    # Complete cycle summary
+    # ------------------------------------------------------------
 
     summary_df = create_cycle_summary(
         discharging_df,
@@ -126,6 +153,7 @@ def load_all_data():
 
     return (
         battery_name,
+        cycles,
         charging_df,
         discharging_df,
         impedance_df,
@@ -140,45 +168,40 @@ def load_all_data():
 # LOAD DATA
 # ================================================================
 
-try:
-
-    (
-        battery_name,
-        charging_df,
-        discharging_df,
-        impedance_df,
-        capacity_df,
-        energy_df,
-        temperature_df,
-        summary_df
-
-    ) = load_all_data()
-
-except Exception as e:
-
-    st.error(
-        f"Error loading battery data: {e}"
-    )
-
-    st.stop()
-
-
-# ================================================================
-# SAVE PROCESSED CSV DATA
-# ================================================================
-
-save_results(
+(
+    battery_name,
+    cycles,
     charging_df,
     discharging_df,
+    impedance_df,
     capacity_df,
     energy_df,
-    summary_df,
-    RESULTS_PATH
-)
+    temperature_df,
+    summary_df
+) = load_all_data()
 
 
 # ================================================================
-# DASHBOARD TITLE
+# SAVE PROCESSED RESULTS
+# ================================================================
+
+try:
+
+    save_results(
+        charging_df,
+        discharging_df,
+        capacity_df,
+        energy_df,
+        summary_df,
+        RESULTS_DIR
+    )
+
+except Exception:
+    pass
+
+
+# ================================================================
+# MAIN TITLE
 # ================================================================
 
 st.title(
@@ -187,24 +210,26 @@ st.title(
 
 st.markdown(
     """
-Interactive analysis of experimental Li-ion battery data,
-including charging behavior, discharge performance,
-energy delivery, capacity degradation, State of Health,
-and thermal behavior.
+This interactive dashboard analyzes experimental Lithium-Ion battery
+measurements from the NASA B0005 battery dataset.
+
+Explore charging behavior, discharging behavior, energy delivery,
+capacity degradation, State of Health (SOH), and thermal behavior
+across repeated battery cycles.
 """
 )
 
 
 # ================================================================
-# SIDEBAR NAVIGATION
+# SIDEBAR
 # ================================================================
 
 st.sidebar.title(
-    "Dashboard Navigation"
+    "🔋 Analysis"
 )
 
 page = st.sidebar.radio(
-    "Select analysis",
+    "Select Analysis",
     [
         "🔋 Charging Analysis",
         "⚡ Discharging Analysis",
@@ -215,22 +240,25 @@ page = st.sidebar.radio(
 
 
 # ================================================================
-# CHARGING ANALYSIS
+# 1. CHARGING ANALYSIS
 # ================================================================
 
 if page == "🔋 Charging Analysis":
 
     st.header(
-        "Charging Behavior"
+        "🔋 Charging Analysis"
     )
 
-    if charging_df.empty:
+    st.markdown(
+        """
+This section shows the electrical and thermal behavior of the
+battery during charging operations.
+"""
+    )
 
-        st.warning(
-            "No charging data available."
-        )
-
-        st.stop()
+    # ------------------------------------------------------------
+    # Select charging operation
+    # ------------------------------------------------------------
 
     charge_numbers = sorted(
         charging_df[
@@ -239,83 +267,95 @@ if page == "🔋 Charging Analysis":
     )
 
     selected_charge = st.selectbox(
-        "Select charging operation",
-        charge_numbers,
-        key="charge_operation_select"
+        "Select Charging Operation",
+        charge_numbers
     )
 
-    data = charging_df[
+    charge_data = charging_df[
         charging_df[
             "charge_number"
         ] == selected_charge
     ].copy()
 
-
     # ------------------------------------------------------------
-    # KPI CARDS
+    # KPIs
     # ------------------------------------------------------------
 
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric(
-        "Initial Voltage",
-        f"{data['voltage_V'].iloc[0]:.2f} V"
-    )
+    with col1:
 
-    col2.metric(
-        "Final Voltage",
-        f"{data['voltage_V'].iloc[-1]:.2f} V"
-    )
+        st.metric(
+            "Maximum Voltage",
+            f"{charge_data['voltage_V'].max():.2f} V"
+        )
 
-    col3.metric(
-        "Average Current",
-        f"{data['current_A'].mean():.2f} A"
-    )
+    with col2:
 
-    col4.metric(
-        "Maximum Temperature",
-        f"{data['temperature_C'].max():.2f} °C"
-    )
+        st.metric(
+            "Maximum Current",
+            f"{charge_data['current_A'].max():.2f} A"
+        )
 
+    with col3:
+
+        st.metric(
+            "Maximum Temperature",
+            f"{charge_data['temperature_C'].max():.2f} °C"
+        )
+
+    with col4:
+
+        duration = (
+            charge_data["time_s"].max()
+            -
+            charge_data["time_s"].min()
+        )
+
+        st.metric(
+            "Charging Duration",
+            f"{duration / 60:.1f} min"
+        )
 
     # ------------------------------------------------------------
-    # CHARGING GRAPH
+    # Charging Voltage / Current / Temperature
     # ------------------------------------------------------------
 
     fig = go.Figure()
 
     fig.add_trace(
         go.Scatter(
-            x=data["time_s"],
-            y=data["voltage_V"],
+            x=charge_data["time_s"],
+            y=charge_data["voltage_V"],
             name="Voltage",
-            mode="lines"
+            yaxis="y"
         )
     )
 
     fig.add_trace(
         go.Scatter(
-            x=data["time_s"],
-            y=data["current_A"],
+            x=charge_data["time_s"],
+            y=charge_data["current_A"],
             name="Current",
-            mode="lines",
             yaxis="y2"
         )
     )
 
     fig.add_trace(
         go.Scatter(
-            x=data["time_s"],
-            y=data["temperature_C"],
+            x=charge_data["time_s"],
+            y=charge_data["temperature_C"],
             name="Temperature",
-            mode="lines",
             yaxis="y3"
         )
     )
 
     fig.update_layout(
 
-        title="Charging Voltage, Current and Temperature",
+        title=(
+            f"Charging Behavior — "
+            f"Operation {selected_charge}"
+        ),
 
         xaxis=dict(
             title="Time (s)"
@@ -335,12 +375,12 @@ if page == "🔋 Charging Analysis":
             title="Temperature (°C)",
             overlaying="y",
             side="right",
-            position=0.90
+            position=0.95
         ),
 
-        height=600,
+        hovermode="x unified",
 
-        hovermode="x unified"
+        height=550
     )
 
     st.plotly_chart(
@@ -351,22 +391,25 @@ if page == "🔋 Charging Analysis":
 
 
 # ================================================================
-# DISCHARGING ANALYSIS
+# 2. DISCHARGING ANALYSIS
 # ================================================================
 
 elif page == "⚡ Discharging Analysis":
 
     st.header(
-        "Discharging Performance"
+        "⚡ Discharging Analysis"
     )
 
-    if discharging_df.empty:
+    st.markdown(
+        """
+This section examines voltage, current, temperature, power,
+and relative discharge progress for individual discharge cycles.
+"""
+    )
 
-        st.warning(
-            "No discharge data available."
-        )
-
-        st.stop()
+    # ------------------------------------------------------------
+    # Select discharge
+    # ------------------------------------------------------------
 
     discharge_numbers = sorted(
         discharging_df[
@@ -374,103 +417,123 @@ elif page == "⚡ Discharging Analysis":
         ].unique()
     )
 
-    selected_discharge = st.selectbox(
-        "Select discharge operation",
-        discharge_numbers,
-        key="discharge_operation_select"
+    selected_discharge_number = st.selectbox(
+        "Select Discharge Cycle",
+        discharge_numbers
     )
 
-    data = discharging_df[
+    discharge_data = discharging_df[
         discharging_df[
             "discharge_number"
-        ] == selected_discharge
+        ]
+        ==
+        selected_discharge_number
     ].copy()
 
-    data = calculate_soc_for_discharge(
-        data
+    # ------------------------------------------------------------
+    # Relative discharge progress
+    # ------------------------------------------------------------
+
+    progress_data = calculate_soc_for_discharge(
+        discharge_data
     )
 
-    selected_summary = summary_df[
-        summary_df[
-            "discharge_number"
-        ] == selected_discharge
-    ].iloc[0]
+    # ------------------------------------------------------------
+    # Power
+    # ------------------------------------------------------------
 
+    discharge_data["power_W"] = (
+        discharge_data["voltage_V"]
+        *
+        discharge_data["current_A"].abs()
+    )
 
     # ------------------------------------------------------------
-    # KPI CARDS
+    # KPIs
     # ------------------------------------------------------------
 
     col1, col2, col3, col4, col5 = st.columns(5)
 
-    col1.metric(
-        "Capacity",
-        f"{selected_summary['capacity_Ah']:.3f} Ah"
-    )
+    with col1:
 
-    col2.metric(
-        "Energy Delivered",
-        f"{selected_summary['energy_Wh']:.2f} Wh"
-    )
+        st.metric(
+            "Initial Voltage",
+            f"{discharge_data['voltage_V'].iloc[0]:.2f} V"
+        )
 
-    col3.metric(
-        "Average Power",
-        f"{selected_summary['average_power_W']:.2f} W"
-    )
+    with col2:
 
-    max_temperature = data[
-        "temperature_C"
-    ].max()
+        st.metric(
+            "Final Voltage",
+            f"{discharge_data['voltage_V'].iloc[-1]:.2f} V"
+        )
 
-    col4.metric(
-        "Maximum Temperature",
-        f"{max_temperature:.2f} °C"
-    )
+    with col3:
 
-    col5.metric(
-        "SOH",
-        f"{selected_summary['SOH_percent']:.2f}%"
-    )
+        st.metric(
+            "Maximum Temperature",
+            f"{discharge_data['temperature_C'].max():.2f} °C"
+        )
 
+    with col4:
+
+        st.metric(
+            "Maximum Power",
+            f"{discharge_data['power_W'].max():.2f} W"
+        )
+
+    with col5:
+
+        duration = (
+            discharge_data["time_s"].max()
+            -
+            discharge_data["time_s"].min()
+        )
+
+        st.metric(
+            "Discharge Duration",
+            f"{duration / 60:.1f} min"
+        )
 
     # ------------------------------------------------------------
-    # DISCHARGE VOLTAGE / CURRENT / TEMPERATURE
+    # Voltage / Current / Temperature
     # ------------------------------------------------------------
 
     fig = go.Figure()
 
     fig.add_trace(
         go.Scatter(
-            x=data["time_s"],
-            y=data["voltage_V"],
+            x=discharge_data["time_s"],
+            y=discharge_data["voltage_V"],
             name="Voltage",
-            mode="lines"
+            yaxis="y"
         )
     )
 
     fig.add_trace(
         go.Scatter(
-            x=data["time_s"],
-            y=data["current_A"],
+            x=discharge_data["time_s"],
+            y=discharge_data["current_A"],
             name="Current",
-            mode="lines",
             yaxis="y2"
         )
     )
 
     fig.add_trace(
         go.Scatter(
-            x=data["time_s"],
-            y=data["temperature_C"],
+            x=discharge_data["time_s"],
+            y=discharge_data["temperature_C"],
             name="Temperature",
-            mode="lines",
             yaxis="y3"
         )
     )
 
     fig.update_layout(
 
-        title="Discharge Voltage, Current and Temperature",
+        title=(
+            f"Discharge Behavior — "
+            f"Cycle {selected_discharge_number}"
+        ),
 
         xaxis=dict(
             title="Time (s)"
@@ -490,12 +553,12 @@ elif page == "⚡ Discharging Analysis":
             title="Temperature (°C)",
             overlaying="y",
             side="right",
-            position=0.90
+            position=0.95
         ),
 
-        height=600,
+        hovermode="x unified",
 
-        hovermode="x unified"
+        height=550
     )
 
     st.plotly_chart(
@@ -504,104 +567,94 @@ elif page == "⚡ Discharging Analysis":
         key="discharge_voltage_current_temperature"
     )
 
-
     # ------------------------------------------------------------
-    # POWER
+    # Power Plot
     # ------------------------------------------------------------
 
-    st.subheader(
-        "Discharge Power"
-    )
+    fig_power = go.Figure()
 
-    power_fig = go.Figure()
-
-    power_fig.add_trace(
+    fig_power.add_trace(
         go.Scatter(
-            x=data["time_s"],
-            y=data["power_W"],
-            mode="lines",
+            x=discharge_data["time_s"],
+            y=discharge_data["power_W"],
             name="Power"
         )
     )
 
-    power_fig.update_layout(
-
-        title="Instantaneous Discharge Power",
-
+    fig_power.update_layout(
+        title=(
+            f"Instantaneous Discharge Power — "
+            f"Cycle {selected_discharge_number}"
+        ),
         xaxis_title="Time (s)",
-
         yaxis_title="Power (W)",
-
         height=450
     )
 
     st.plotly_chart(
-        power_fig,
+        fig_power,
         use_container_width=True,
         key="discharge_power"
     )
 
-
     # ------------------------------------------------------------
-    # RELATIVE DISCHARGE PROGRESS
+    # Relative Discharge Progress
     # ------------------------------------------------------------
 
-    st.subheader(
-        "Relative Discharge Progress"
-    )
+    if (
+        "discharge_progress_percent"
+        in progress_data.columns
+    ):
 
-    progress_fig = go.Figure()
+        fig_progress = go.Figure()
 
-    progress_fig.add_trace(
-        go.Scatter(
-            x=data[
-                "discharge_progress_percent"
-            ],
-            y=data["voltage_V"],
-            mode="lines",
-            name="Voltage"
+        fig_progress.add_trace(
+            go.Scatter(
+                x=progress_data["time_s"],
+                y=progress_data[
+                    "discharge_progress_percent"
+                ],
+                name="Discharge Progress"
+            )
         )
-    )
 
-    progress_fig.update_layout(
+        fig_progress.update_layout(
+            title=(
+                f"Relative Discharge Progress — "
+                f"Cycle {selected_discharge_number}"
+            ),
+            xaxis_title="Time (s)",
+            yaxis_title="Discharge Progress (%)",
+            height=450
+        )
 
-        title="Voltage During Relative Discharge Progress",
-
-        xaxis_title="Discharge Progress (%)",
-
-        yaxis_title="Voltage (V)",
-
-        height=450
-    )
-
-    st.plotly_chart(
-        progress_fig,
-        use_container_width=True,
-        key="relative_discharge_progress"
-    )
+        st.plotly_chart(
+            fig_progress,
+            use_container_width=True,
+            key="relative_discharge_progress"
+        )
 
 
 # ================================================================
-# BATTERY DEGRADATION
+# 3. BATTERY DEGRADATION
 # ================================================================
 
 elif page == "📉 Battery Degradation":
 
     st.header(
-        "Battery Aging & Degradation"
+        "📉 Battery Degradation"
     )
 
-    if capacity_df.empty:
-
-        st.warning(
-            "No degradation data available."
-        )
-
-        st.stop()
-
+    st.markdown(
+        """
+This section shows how battery capacity, State of Health (SOH),
+energy delivery, and temperature behavior change with repeated
+discharge cycles.
+"""
+    )
 
     # ------------------------------------------------------------
-    # BATTERY HEALTH KPIs
+    # Initial and final values
     # ------------------------------------------------------------
 
     initial_capacity = (
@@ -622,46 +675,59 @@ elif page == "📉 Battery Degradation":
         ].iloc[-1]
     )
 
-    total_loss = (
-        capacity_df[
-            "capacity_loss_percent"
-        ].iloc[-1]
+    capacity_loss = (
+        (
+            initial_capacity
+            -
+            final_capacity
+        )
+        /
+        initial_capacity
+        *
+        100
     )
+
+    # ------------------------------------------------------------
+    # KPIs
+    # ------------------------------------------------------------
 
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric(
-        "Initial Capacity",
-        f"{initial_capacity:.3f} Ah"
-    )
+    with col1:
 
-    col2.metric(
-        "Final Capacity",
-        f"{final_capacity:.3f} Ah"
-    )
+        st.metric(
+            "Initial Capacity",
+            f"{initial_capacity:.3f} Ah"
+        )
 
-    col3.metric(
-        "Final SOH",
-        f"{final_soh:.2f}%"
-    )
+    with col2:
 
-    col4.metric(
-        "Capacity Loss",
-        f"{total_loss:.2f}%"
-    )
+        st.metric(
+            "Final Capacity",
+            f"{final_capacity:.3f} Ah"
+        )
 
+    with col3:
 
-    # ============================================================
-    # 1. CAPACITY DEGRADATION
-    # ============================================================
+        st.metric(
+            "Final SOH",
+            f"{final_soh:.2f}%"
+        )
 
-    st.subheader(
-        "Capacity Degradation"
-    )
+    with col4:
 
-    capacity_fig = go.Figure()
+        st.metric(
+            "Capacity Loss",
+            f"{capacity_loss:.2f}%"
+        )
 
-    capacity_fig.add_trace(
+    # ------------------------------------------------------------
+    # Capacity Degradation
+    # ------------------------------------------------------------
+
+    fig_capacity = go.Figure()
+
+    fig_capacity.add_trace(
         go.Scatter(
             x=capacity_df[
                 "discharge_number"
@@ -674,39 +740,26 @@ elif page == "📉 Battery Degradation":
         )
     )
 
-    capacity_fig.update_layout(
-
+    fig_capacity.update_layout(
         title="Battery Capacity Degradation",
-
-        xaxis_title="Discharge Number",
-
+        xaxis_title="Discharge Cycle",
         yaxis_title="Capacity (Ah)",
-
-        template="plotly_white",
-
-        height=600,
-
-        hovermode="x unified"
+        height=450
     )
 
     st.plotly_chart(
-        capacity_fig,
+        fig_capacity,
         use_container_width=True,
         key="capacity_degradation"
     )
 
+    # ------------------------------------------------------------
+    # SOH
+    # ------------------------------------------------------------
 
-    # ============================================================
-    # 2. SOH VS DISCHARGE
-    # ============================================================
+    fig_soh = go.Figure()
 
-    st.subheader(
-        "State of Health"
-    )
-
-    soh_fig = go.Figure()
-
-    soh_fig.add_trace(
+    fig_soh.add_trace(
         go.Scatter(
             x=capacity_df[
                 "discharge_number"
@@ -719,39 +772,26 @@ elif page == "📉 Battery Degradation":
         )
     )
 
-    soh_fig.update_layout(
-
-        title="Battery State of Health vs Discharge Number",
-
-        xaxis_title="Discharge Number",
-
-        yaxis_title="State of Health (%)",
-
-        template="plotly_white",
-
-        height=600,
-
-        hovermode="x unified"
+    fig_soh.update_layout(
+        title="Battery State of Health",
+        xaxis_title="Discharge Cycle",
+        yaxis_title="SOH (%)",
+        height=450
     )
 
     st.plotly_chart(
-        soh_fig,
+        fig_soh,
         use_container_width=True,
         key="soh_degradation"
     )
 
+    # ------------------------------------------------------------
+    # Energy Delivered
+    # ------------------------------------------------------------
 
-    # ============================================================
-    # 3. ENERGY VS DISCHARGE
-    # ============================================================
+    fig_energy = go.Figure()
 
-    st.subheader(
-        "Energy Delivered vs Battery Use"
-    )
-
-    energy_fig = go.Figure()
-
-    energy_fig.add_trace(
+    fig_energy.add_trace(
         go.Scatter(
             x=energy_df[
                 "discharge_number"
@@ -760,43 +800,30 @@ elif page == "📉 Battery Degradation":
                 "energy_Wh"
             ],
             mode="lines+markers",
-            name="Energy Delivered"
+            name="Energy"
         )
     )
 
-    energy_fig.update_layout(
-
-        title="Energy Delivered vs Discharge Number",
-
-        xaxis_title="Discharge Number",
-
-        yaxis_title="Energy Delivered (Wh)",
-
-        template="plotly_white",
-
-        height=600,
-
-        hovermode="x unified"
+    fig_energy.update_layout(
+        title="Energy Delivered During Discharge",
+        xaxis_title="Discharge Cycle",
+        yaxis_title="Energy (Wh)",
+        height=450
     )
 
     st.plotly_chart(
-        energy_fig,
+        fig_energy,
         use_container_width=True,
         key="energy_degradation"
     )
 
+    # ------------------------------------------------------------
+    # Maximum Temperature
+    # ------------------------------------------------------------
 
-    # ============================================================
-    # 4. TEMPERATURE VS DISCHARGE
-    # ============================================================
+    fig_temperature = go.Figure()
 
-    st.subheader(
-        "Thermal Behavior During Aging"
-    )
-
-    temperature_fig = go.Figure()
-
-    temperature_fig.add_trace(
+    fig_temperature.add_trace(
         go.Scatter(
             x=temperature_df[
                 "discharge_number"
@@ -809,43 +836,22 @@ elif page == "📉 Battery Degradation":
         )
     )
 
-    temperature_fig.add_trace(
-        go.Scatter(
-            x=temperature_df[
-                "discharge_number"
-            ],
-            y=temperature_df[
-                "mean_temperature_C"
-            ],
-            mode="lines",
-            name="Average Temperature"
-        )
-    )
-
-    temperature_fig.update_layout(
-
-        title="Battery Temperature vs Discharge Number",
-
-        xaxis_title="Discharge Number",
-
+    fig_temperature.update_layout(
+        title="Maximum Battery Temperature",
+        xaxis_title="Discharge Cycle",
         yaxis_title="Temperature (°C)",
-
-        template="plotly_white",
-
-        height=600,
-
-        hovermode="x unified"
+        height=450
     )
 
     st.plotly_chart(
-        temperature_fig,
+        fig_temperature,
         use_container_width=True,
         key="temperature_degradation"
     )
 
 
 # ================================================================
-# BATTERY SUMMARY
+# 4. BATTERY SUMMARY
 # ================================================================
 
 elif page == "📊 Battery Summary":
@@ -872,9 +878,9 @@ This project uses experimental battery measurements to examine:
     )
 
 
-    # ------------------------------------------------------------
-    # SUMMARY TABLE
-    # ------------------------------------------------------------
+    # ============================================================
+    # DISCHARGE-LEVEL BATTERY DATASET
+    # ============================================================
 
     st.subheader(
         "Discharge-Level Battery Dataset"
@@ -885,31 +891,168 @@ This project uses experimental battery measurements to examine:
         use_container_width=True
     )
 
-
-    # ------------------------------------------------------------
-    # DOWNLOAD SUMMARY
-    # ------------------------------------------------------------
-
     csv_data = summary_df.to_csv(
         index=False
     )
 
     st.download_button(
         label="⬇️ Download Battery Summary CSV",
-
         data=csv_data,
-
         file_name="battery_summary.csv",
-
         mime="text/csv",
-
         key="download_battery_summary"
     )
 
 
+    # ============================================================
+    # PROCESSED BATTERY DATA
+    # ============================================================
+
+    st.subheader(
+        "Processed Battery Data"
+    )
+
+    st.markdown(
+        """
+Explore the processed datasets used to generate the
+dashboard results.
+"""
+    )
+
+
     # ------------------------------------------------------------
+    # TABS
+    # ------------------------------------------------------------
+
+    tab1, tab2, tab3, tab4 = st.tabs(
+        [
+            "📉 Capacity & SOH",
+            "⚡ Discharge Energy",
+            "🔋 Charging Data",
+            "⚡ Discharging Data"
+        ]
+    )
+
+
+    # ============================================================
+    # TAB 1 — CAPACITY & SOH
+    # ============================================================
+
+    with tab1:
+
+        st.markdown(
+            "### Capacity and State of Health"
+        )
+
+        st.dataframe(
+            capacity_df,
+            use_container_width=True,
+            height=500
+        )
+
+        capacity_csv = capacity_df.to_csv(
+            index=False
+        )
+
+        st.download_button(
+            label="⬇️ Download Capacity & SOH Data",
+            data=capacity_csv,
+            file_name="capacity_soh.csv",
+            mime="text/csv",
+            key="download_capacity_soh"
+        )
+
+
+    # ============================================================
+    # TAB 2 — DISCHARGE ENERGY
+    # ============================================================
+
+    with tab2:
+
+        st.markdown(
+            "### Discharge Energy Data"
+        )
+
+        st.dataframe(
+            energy_df,
+            use_container_width=True,
+            height=500
+        )
+
+        energy_csv = energy_df.to_csv(
+            index=False
+        )
+
+        st.download_button(
+            label="⬇️ Download Discharge Energy Data",
+            data=energy_csv,
+            file_name="discharge_energy.csv",
+            mime="text/csv",
+            key="download_discharge_energy"
+        )
+
+
+    # ============================================================
+    # TAB 3 — CHARGING DATA
+    # ============================================================
+
+    with tab3:
+
+        st.markdown(
+            "### Charging Data"
+        )
+
+        st.dataframe(
+            charging_df,
+            use_container_width=True,
+            height=500
+        )
+
+        charging_csv = charging_df.to_csv(
+            index=False
+        )
+
+        st.download_button(
+            label="⬇️ Download Charging Data",
+            data=charging_csv,
+            file_name="charging_data.csv",
+            mime="text/csv",
+            key="download_charging_data"
+        )
+
+
+    # ============================================================
+    # TAB 4 — DISCHARGING DATA
+    # ============================================================
+
+    with tab4:
+
+        st.markdown(
+            "### Discharging Data"
+        )
+
+        st.dataframe(
+            discharging_df,
+            use_container_width=True,
+            height=500
+        )
+
+        discharging_csv = discharging_df.to_csv(
+            index=False
+        )
+
+        st.download_button(
+            label="⬇️ Download Discharging Data",
+            data=discharging_csv,
+            file_name="discharging_data.csv",
+            mime="text/csv",
+            key="download_discharging_data"
+        )
+
+
+    # ============================================================
     # PROJECT INFORMATION
-    # ------------------------------------------------------------
+    # ============================================================
 
     st.subheader(
         "Project Information"
@@ -919,45 +1062,32 @@ This project uses experimental battery measurements to examine:
 
     with col1:
 
-        st.write(
-            "**Battery:** NASA Li-ion B0005"
-        )
+        st.markdown(
+            """
+**Dataset:** NASA Ames Battery Dataset
 
-        st.write(
-            f"**Discharge operations:** "
-            f"{len(capacity_df)}"
-        )
+**Battery:** B0005
 
-        st.write(
-            f"**Charge operations:** "
-            f"{charging_df['charge_number'].nunique()}"
+**Analysis:** Battery Performance and Degradation
+
+**Programming:** Python
+
+**Dashboard:** Streamlit
+"""
         )
 
     with col2:
 
-        st.write(
-            "**Analysis:** Battery performance "
-            "and degradation"
+        st.markdown(
+            """
+**Key Parameters**
+
+- Voltage
+- Current
+- Temperature
+- Capacity
+- State of Health
+- Energy
+- Discharge behavior
+"""
         )
-
-        st.write(
-            "**Platform:** Python + Streamlit"
-        )
-
-        st.write(
-            "**Visualization:** Plotly"
-        )
-
-
-# ================================================================
-# SIDEBAR FOOTER
-# ================================================================
-
-st.sidebar.markdown("---")
-
-st.sidebar.info(
-    "NASA Li-ion Battery Performance & "
-    "Degradation Analysis\n\n"
-    "Python • Pandas • SciPy • Plotly • Streamlit"
-)
-
